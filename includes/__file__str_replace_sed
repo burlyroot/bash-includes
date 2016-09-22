@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ##
- # Trap Error Handler 
+ # String Replace using GNU sed 
  #
  # Author: Dereck Martin <dmartin@burlyroot.com>
  #
@@ -31,28 +31,40 @@
  ##
 
 ##
- # Define Error Trap
- #
- #  @param  $1  String A space delimited string containing:
- #                Function
- #                BUILTIN $LINENO
- #                BUILTIN $?
- #                Message Variable
- #                
- #  @param  $2  Signal
+ # Check to see if sed is available for use
  ##
-trap '__e__trap_err ${LINENO} $? "${ERRNO_MSG}"' ERR
+function __file__is_sed_found() {
+  hash sed 2>/dev/null || { 
+    ERRNO_MSG="$FUNCNAME(): GNU sed is required"; 
+    return 1;
+  }
+
+  return 0;
+}; __file__is_sed_found
 
 ##
- # Handle propagation of caught exceptions
  #
- #  @param  $1  int     Line number.
- #  @param  $2  int     Exit code.
- #  @param  $3  int     Message (optional).
+ # Find and Replace string in file using GNU sed
+ #
+ # @param   $1   string   File Path.
+ # @param   $2   string   Search string.
+ # @param   $3   string   Replace string.
+ #
+ # @note    This function does no input string validation, better make sure
+ #          you regex escapes are in place for / and ".
  ##
-function __e__trap_err() {
-  echo "[ERROR] Line: ${1} Code: ${2} Message: ${3}"
-  exit 1
+function file__str_replace_sed() {
+
+  # check if regular file and writable.
+  if [ ! -f "${1}" ] || [ ! -w "${1}" ]; then
+    ERRNO_MSG="$FUNCNAME() Requires an existing writable file."
+    return 1;
+  fi
+
+  # send to sed
+  ERRNO_MSG="$FUNCNAME(): $(sed -i -e "s/${2}/${3}/g" "${1}" 2>&1)"
+
+  return $?
 }
 
 : <<=cut
@@ -60,46 +72,30 @@ function __e__trap_err() {
 
 =head1 NAME
 
-  __e__trap_err - BASH helper for trapping return errors
+  __file__str_replace_sed - BASH helper to replace all occurrences of the 
+  search string with the replacement string using GNU sed.
 
 =head1 SYNOPSIS
 
   Source into BASH script. 
   
-  . __e__trap_err
+  . __file__str_replace_sed
+
+  Provides:
+  
+    file_str_replace_sed <path> <search> <replace>
 
 =head1 DESCRIPTION
 
-  The above source call adds exception handling into a BASH script.
-
-=head2 Requirements
-
-  BASH Version >= 2.05a
-
-  To produce additional messages, functions should set $ERRNO_MSG on return of
-  non-zero status codes. This include was designed for BASH.
+  The above source call adds basic find and replace capability for files using
+  GNU sed.
 
 =head2 Code Sample
 
   #!/usr/bin/env bash
 
-  . __e__trap_err
-
-  function example() {
-    if [ -n "$1" ]; then
-      return 0
-    fi
-
-    ERRNO_MSG="$FUNCNAME() requires a single argument"
-    return 1
-  }
-
-  example 1
-  example
-
-=head3 Output Sample
-
-  [ERROR] Line: 15 Code: 1 Message: example() requires a single argument
+  . __file__str_replace_sed
+  file__str_replace_sed "test.txt" "find string" "replace string"
 
 =head1 LICENSE
   
