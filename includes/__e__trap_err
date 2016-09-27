@@ -55,6 +55,16 @@ function __e__trap_err() {
   exit 1
 }
 
+##
+ # Force an exception from any where as needed
+ #
+ # @param   $@  string  Error Message
+ ##
+function e__throw_err() {
+  ERRNO_MSG="$@"
+  return 1
+}
+
 : <<=cut
 =pod
 
